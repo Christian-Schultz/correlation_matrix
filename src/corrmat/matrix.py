@@ -1,7 +1,3 @@
-import pandas as pd
-import numpy as np
-
-
 class CorrelationMatrix(object):
     """A thin wrapper on a pandas dataframe representing a correlation matrix
 
@@ -25,6 +21,7 @@ class CorrelationMatrix(object):
 
         self._rows = None
         self._columns = None
+        self._matrix = None
         if calculate:
             matrix = matrix.corr()
 
@@ -36,6 +33,17 @@ class CorrelationMatrix(object):
         #  the eval->repr rule, and hence it is not possible for this class to adhere to the rule).
         return repr(self.matrix)
 
+    @classmethod
+    def from_dataframe(cls, matrix=None, calculate=False):
+        """Default constructor
+
+        :param matrix: The pandas dataframe that corresponds to the correlation matrix. If not specified the
+        CorrelationMatrix instance will be empty.
+        :param calculate: A boolean parameter that if true will calculate
+        matrix.corr() and set this as the underlying correlation matrix. Defaults to False.
+        """
+        return cls(matrix, calculate)
+
     @property
     def matrix(self):
         """
@@ -46,6 +54,12 @@ class CorrelationMatrix(object):
 
     @matrix.setter
     def matrix(self, dataframe):
+        """
+        Property that sets the underlying pandas dataframe
+        :param dataframe: Dataframe to set. Should be symmetric with all coefficients in the range [-1,1]
+        :return: None
+        """
+        # Check if coefficients are in range [-1,1]
         if (abs(dataframe) > 1).any().any():
             raise ValueError("Not a valid correlation matrix. Correlation coefficients needs to be less than or equal "
                              "to 1 (numerically)")
@@ -53,13 +67,15 @@ class CorrelationMatrix(object):
         self._columns = dataframe.columns.tolist()
         if len(self._rows) != len(self._columns):
             raise ValueError("Matrix specified is not square")
+        if not (dataframe == dataframe.transpose()).all().all():
+            raise ValueError("Matrix not symmetric")
         self._matrix = dataframe
 
     @property
     def columns(self):
         """
         Property that contains the columns of correlation matrix. Cannot be set
-        :return: The columns of the underlying pandas dataframe
+        :return: The columns of the underlying pandas dataframe as a list
         """
         return self._columns
 
@@ -71,7 +87,7 @@ class CorrelationMatrix(object):
     def rows(self):
         """
         Property that contains the rows of correlation matrix. Cannot be set
-        :return: The index of the underlying pandas dataframe
+        :return: The index of the underlying pandas dataframe as a list
         """
         return self._rows
 
@@ -87,7 +103,7 @@ class CorrelationMatrix(object):
 
         :param target: The target (row or column name) to identify the correlation coefficients
         :param threshold: The specified threshold. Default: 0.75
-        :return: Returns pandas dataframe
+        :return: Returns new CorrelationMatrix instance
         """
 
         idx = self.matrix[target].sort_values(ascending=False) >= threshold
@@ -96,4 +112,4 @@ class CorrelationMatrix(object):
 
         m = self.matrix[idx].loc[idx]
 
-        return m
+        return self.from_dataframe(m, calculate=False)
