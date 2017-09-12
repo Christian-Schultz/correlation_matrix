@@ -67,7 +67,7 @@ class CorrelationMatrix(object):
         self._columns = dataframe.columns.tolist()
         if len(self._rows) != len(self._columns):
             raise ValueError("Matrix specified is not square")
-        if not (dataframe == dataframe.transpose()).all().all():
+        if not dataframe.equals(dataframe.transpose()):
             raise ValueError("Matrix not symmetric")
         self._matrix = dataframe
 
