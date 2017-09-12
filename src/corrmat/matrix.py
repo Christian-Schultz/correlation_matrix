@@ -1,3 +1,6 @@
+import numpy as np
+
+
 class CorrelationMatrix(object):
     """A thin wrapper on a pandas dataframe representing a correlation matrix
 
@@ -63,11 +66,17 @@ class CorrelationMatrix(object):
         if (abs(dataframe) > 1).any().any():
             raise ValueError("Not a valid correlation matrix. Correlation coefficients needs to be less than or equal "
                              "to 1 (numerically)")
+        # Check if values on diagonal are 1
+        if not (np.diag(dataframe.values) == 1).all():
+            raise ValueError("Diagonal is not unity")
+        # Check if columns and rows are named similarly
+        if dataframe.index.tolist() != dataframe.columns.tolist():
+            raise IndexError("Columns and rows need to have identical labels")
         self._rows = dataframe.index.tolist()
         self._columns = dataframe.columns.tolist()
         if len(self._rows) != len(self._columns):
             raise ValueError("Matrix specified is not square")
-        if not dataframe.equals(dataframe.transpose()):
+        if not (dataframe.equals(dataframe.transpose())):
             raise ValueError("Matrix not symmetric")
         self._matrix = dataframe
 
