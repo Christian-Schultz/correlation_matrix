@@ -95,18 +95,26 @@ class CorrelationMatrix(object):
     def rows(self, val):
         raise ValueError('Property cannot be set')
 
-    def get_submatrix(self, target, threshold=0.75):
+    def get_submatrix(self, target, threshold=0.75, skip_negatives=False):
         """
-        This method will produce a sub-matrix with all variables that have a correlation coefficient larger (in
-        numerical terms) than a specified threshold for the given target. The sub-matrix is sorted descendingly with
-        respect to the correlation coefficients.
+        This method will produce a sub-matrix with all variables that have a correlation coefficient larger than a
+        specified threshold for the given target. The sub-matrix is sorted descendingly with respect to the
+        correlation coefficients.
 
         :param target: The target (row or column name) to identify the correlation coefficients
         :param threshold: The specified threshold. Default: 0.75
+        :param skip_negatives: If true, will skip variables that have a negative correlation smaller than the specified
+        threshold. Default: False
         :return: Returns new CorrelationMatrix instance
         """
 
+        if threshold < 0:
+            raise ValueError("Threshold must be non-negative")
+
         idx = self.matrix[target].sort_values(ascending=False) >= threshold
+
+        idx2 = self.matrix[target].sort_values(ascending=False) <= -threshold
+        idx |= idx2
 
         idx = idx.index[idx].tolist()
 
