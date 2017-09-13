@@ -129,4 +129,6 @@ class CorrelationMatrix(object):
 
         m = self.matrix[idx].loc[idx]
 
-        return self.from_dataframe(m, calculate=False)
+        # Use __class__ to use CorrelationMatrix constructor and not a subclass' (if the class inherits from
+        # CorrelationMatrix)
+        return self.__class__.from_dataframe(m, calculate=False)
