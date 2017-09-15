@@ -146,7 +146,6 @@ class CorrelationMatrix(object):
         # CorrelationMatrix)
         return self.__class__.from_dataframe(m, calculate=False)
 
-
     def ellipse_plot(self, ax=None, **kwargs):
         """
         Make an ellipse plot of the correlation matrix. Return the figure instance. Code modified from
@@ -165,7 +164,7 @@ class CorrelationMatrix(object):
             ax.set_ylim(-0.5, M.shape[0] - 0.5)
 
         # xy locations of each ellipse center
-        xy = np.indices(M.shape)[::-1].reshape(2, -1).T
+        xy = np.indices(M.shape).reshape(2, -1).T
 
         # set the relative sizes of the major/minor axes according to the strength of
         # the positive/negative correlation
@@ -182,9 +181,14 @@ class CorrelationMatrix(object):
                                transOffset=ax.transData, array=M.ravel(), **kwargs)
         ax.add_collection(ec)
 
+        for x,y in xy:
+            ax.annotate("%.1f" % M[x,y],xy=(x,y), va='center', ha='center')
+
         ax.set_xticks(np.arange(self.matrix.shape[1]))
-        ax.set_xticklabels(self.columns, rotation=90)
+        ax.set_xticklabels(self.columns)
         ax.set_yticks(np.arange(self.matrix.shape[0]))
         ax.set_yticklabels(self.rows)
 
+        ax.invert_yaxis()
+        ax.xaxis.tick_top()
         return ec.figure
