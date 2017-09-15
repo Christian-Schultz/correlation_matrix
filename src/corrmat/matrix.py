@@ -1,5 +1,8 @@
 import numpy as np
 
+from matplotlib import pyplot as plt
+from matplotlib.collections import EllipseCollection
+
 
 class CorrelationMatrix(object):
     """A thin wrapper on a pandas dataframe representing a correlation matrix
@@ -69,15 +72,19 @@ class CorrelationMatrix(object):
         # Check if values on diagonal are 1
         if not (np.diag(dataframe.values) == 1).all():
             raise ValueError("Diagonal is not unity")
-        # Check if columns and rows are named similarly
-        if dataframe.index.tolist() != dataframe.columns.tolist():
-            raise IndexError("Columns and rows need to have identical labels")
+
         self._rows = dataframe.index.tolist()
         self._columns = dataframe.columns.tolist()
+        #Check if matrix is square
         if len(self._rows) != len(self._columns):
             raise ValueError("Matrix specified is not square")
+        # Check if matrix is symmetric
         if not (dataframe.equals(dataframe.transpose())):
             raise ValueError("Matrix not symmetric")
+        # Check if columns and rows are named similarly
+        if self._rows != self._columns:
+            raise IndexError("Columns and rows need to have identical labels")
+
         self._matrix = dataframe
 
     @property
@@ -104,25 +111,31 @@ class CorrelationMatrix(object):
     def rows(self, val):
         raise ValueError('Property cannot be set')
 
-    def get_submatrix(self, target, threshold=0.75, skip_negatives=False):
+    def get_submatrix(self, target, threshold=0.75, skip_negatives=False, sort=True):
         """
         This method will produce a sub-matrix with all variables that have a correlation coefficient larger than a
         specified threshold for the given target. The sub-matrix is sorted descendingly with respect to the
-        correlation coefficients.
+        correlation coefficients by default.
 
         :param target: The target (row or column name) to identify the correlation coefficients
         :param threshold: The specified threshold. Default: 0.75
         :param skip_negatives: If true, will skip variables that have a negative correlation smaller than the specified
         threshold. Default: False
+        :param sort: Sort descendingly by correlation coeffients. Default: True
         :return: Returns new CorrelationMatrix instance
         """
 
         if threshold < 0:
             raise ValueError("Threshold must be non-negative")
 
-        idx = self.matrix[target].sort_values(ascending=False) >= threshold
+        if sort:
+            mat = self.matrix[target].sort_values(ascending=False)
+        else:
+            mat = self.matrix[target]
 
-        idx2 = self.matrix[target].sort_values(ascending=False) <= -threshold
+        idx = mat >= threshold
+
+        idx2 = mat <= -threshold
         idx |= idx2
 
         idx = idx.index[idx].tolist()
@@ -132,3 +145,46 @@ class CorrelationMatrix(object):
         # Use __class__ to use CorrelationMatrix constructor and not a subclass' (if the class inherits from
         # CorrelationMatrix)
         return self.__class__.from_dataframe(m, calculate=False)
+
+
+    def ellipse_plot(self, ax=None, **kwargs):
+        """
+        Make an ellipse plot of the correlation matrix. Return the figure instance. Code modified from
+        https://stackoverflow.com/a/34558488/787267
+
+        :param ax: If specified, will plot in this axes instance, otherwise will create a new figure instance
+        :param kwargs: Key word arguments to be passed to matplotlib.collections.EllipseCollection. The default clim is
+        [-1,1], use clim=None if the color scaling is to be set automatically
+        :return: A matplotlotlib.pyplot.figure instance
+        """
+
+        M = self.matrix.values
+        if ax is None:
+            fig, ax = plt.subplots(1, 1, subplot_kw={'aspect': 'equal'})
+            ax.set_xlim(-0.5, M.shape[1] - 0.5)
+            ax.set_ylim(-0.5, M.shape[0] - 0.5)
+
+        # xy locations of each ellipse center
+        xy = np.indices(M.shape)[::-1].reshape(2, -1).T
+
+        # set the relative sizes of the major/minor axes according to the strength of
+        # the positive/negative correlation
+        w = np.ones_like(M).ravel()
+        h = 1 - np.abs(M).ravel()
+        # Fix diagonal entries to be straight lines
+        h = [0.01 if e == 0 else e for e in h]
+        a = 45 * np.sign(M).ravel()
+
+        kwargs.setdefault('cmap', 'bwr_r')
+        kwargs.setdefault('clim', [-1, 1])
+
+        ec = EllipseCollection(widths=w, heights=h, angles=a, units='x', offsets=xy,
+                               transOffset=ax.transData, array=M.ravel(), **kwargs)
+        ax.add_collection(ec)
+
+        ax.set_xticks(np.arange(self.matrix.shape[1]))
+        ax.set_xticklabels(self.columns, rotation=90)
+        ax.set_yticks(np.arange(self.matrix.shape[0]))
+        ax.set_yticklabels(self.rows)
+
+        return ec.figure
