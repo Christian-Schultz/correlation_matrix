@@ -21,9 +21,10 @@ corr_mat2 = CorrelationMatrix(df2, calculate=False)
 
 corr_mat2 = corr_mat2.get_submatrix('A', threshold=0.5, sort=True)
 
-fig1 = corr_mat1.ellipse_plot()
+fig1 = corr_mat1.plot(annot=False, shape='tril')
 
-fig2 = corr_mat2.ellipse_plot(cmap='RdGy', clim=None)
+fig2, ax2 = plt.subplots(1, 1)
+corr_mat2.plot(cmap='RdGy', ax=ax2)
 
 plt.show()
 print "Done"

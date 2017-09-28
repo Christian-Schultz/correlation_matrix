@@ -2,6 +2,7 @@ import numpy as np
 
 from matplotlib import pyplot as plt
 from matplotlib.collections import EllipseCollection
+import seaborn as sns
 
 
 class CorrelationMatrix(object):
@@ -162,6 +163,8 @@ class CorrelationMatrix(object):
             fig, ax = plt.subplots(1, 1, subplot_kw={'aspect': 'equal'})
             ax.set_xlim(-0.5, M.shape[1] - 0.5)
             ax.set_ylim(-0.5, M.shape[0] - 0.5)
+            ax.margins(0.1)
+
 
         # xy locations of each ellipse center
         xy = np.indices(M.shape).reshape(2, -1).T
@@ -184,6 +187,9 @@ class CorrelationMatrix(object):
         for x,y in xy:
             ax.annotate("%.1f" % M[x,y],xy=(x,y), va='center', ha='center')
 
+        cb = fig.colorbar(ec)
+        cb.set_label('Correlation coefficient')
+
         ax.set_xticks(np.arange(self.matrix.shape[1]))
         ax.set_xticklabels(self.columns)
         ax.set_yticks(np.arange(self.matrix.shape[0]))
@@ -192,3 +198,38 @@ class CorrelationMatrix(object):
         ax.invert_yaxis()
         ax.xaxis.tick_top()
         return ec.figure
+
+    def plot(self, ax=None, shape=None, **kwargs):
+
+
+        M = self.matrix.values
+        if ax is None:
+            fig, ax = plt.subplots(1, 1)
+
+        kwargs.setdefault('cmap', 'bwr_r')
+        kwargs.setdefault('vmin', -1)
+        kwargs.setdefault('vmax', 1)
+        kwargs.setdefault('annot', True)
+        kwargs.setdefault('fmt', ".1f")
+        kwargs.setdefault('linewidth', 0.5)
+        kwargs.setdefault('square', True)
+
+        mask = np.zeros_like(M, dtype=np.bool)
+
+        if shape is None:
+            mask = None
+        elif shape == 'triu':
+            mask[np.tril_indices_from(mask)] = True
+        elif shape == 'tril':
+            mask[np.triu_indices_from(mask)] = True
+        else:
+            raise ValueError('Shape must be either "triu" or "tril"')
+
+        new_ax = sns.heatmap(M, mask=mask, ax=ax, **kwargs)
+
+        new_ax.set_xticks(np.arange(self.matrix.shape[1])+0.5)
+        new_ax.set_xticklabels(self.columns)
+        new_ax.set_yticks(np.arange(self.matrix.shape[0])+0.5)
+        new_ax.set_yticklabels(self.rows)
+
+        return new_ax.figure
