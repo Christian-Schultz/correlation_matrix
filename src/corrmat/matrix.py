@@ -200,7 +200,15 @@ class CorrelationMatrix(object):
         return ec.figure
 
     def plot(self, ax=None, shape=None, **kwargs):
-
+        """
+        
+        :param ax: If specified, will plot in this axes instance, otherwise will create a new figure instance
+        :param shape: Specify whether to plot matrix as upper triangular (shape="triu") or lower_triangular 
+        (shape="tril"). Default: None, meaning the full matrix will be plotted
+        :param kwargs: Key word arguments to be passed to seaborn.heatmap. Support all normal kwargs except mask. 
+        Some defaults have been changed.
+        :return: A matplotlotlib.pyplot.figure instance 
+        """
 
         M = self.matrix.values
         if ax is None:
